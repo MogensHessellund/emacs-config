@@ -110,10 +110,10 @@ Best git client
 
 * Set personal information
 #+BEGIN_SRC emacs-lisp
-  (setq user-full-name "Adrien Brochard"
-        calendar-latitude 40.7
-        calendar-longitude -73.98
-        calendar-location-name "New York, NY")
+  (setq user-full-name "Mogens Hessellund"
+        calendar-latitude 56.16
+        calendar-longitude 10.20
+        calendar-location-name "Aarhus, DK")
 #+END_SRC
 
 
@@ -136,16 +136,6 @@ Best git client
     (find-alternate-file
      (concat "/sudo:root@localhost:"
              buffer-file-name))))
-#+END_SRC
-
-** Show xkcd on start
-#+BEGIN_SRC emacs-lisp
-(use-package xkcd)
-(defun showxkcd ()
-  "Call this to show xkcd comic of the day on start"
-  (require 'xkcd)
-  (xkcd)
-  (switch-to-buffer "*xkcd*"))
 #+END_SRC
 
 ** Replace JSON web token in buffer
@@ -278,24 +268,6 @@ Before Emacs 25.1
     (find-file (concat config-load-path "configuration.org")))
 #+END_SRC
 
-** Send the current selection in an email
-This uses mutt.
-#+BEGIN_SRC emacs-lisp
-  (defun email-selection ()
-    (interactive)
-    (copy-region-as-kill (region-beginning) (region-end))
-    (let ((tmp-file (concat "/tmp/" (buffer-name (current-buffer))))
-          (recipient (read-string "Enter a recipient: "))
-          (subject (read-string "Enter a subject: ")))
-      (find-file tmp-file)
-      (yank)
-      (save-buffer)
-      (kill-buffer (current-buffer))
-      (shell-command (concat "mutt -s \"" subject "\" " recipient " < " tmp-file))
-      (shell-command (concat "rm -f " tmp-file)))
-    (message "Sent!"))
-#+END_SRC
-
 ** Move files more intuitively
 #+BEGIN_SRC emacs-lisp
   (defun move-file ()
@@ -379,6 +351,17 @@ And copy to clipboard
             (if has-ticket-title
                 (insert (format "[%s-%s] " (car words) (car (cdr words))))))))
 #+END_SRC
+
+** Insert date
+#+BEGIN_SRC emacs-lisp
+(defun insert-date ()
+"Insert date at point."
+(interactive)
+(insert (format-time-string "%Y-%m-%d-%H%M")))
+(global-set-key [f3] 'insert-date)
+#+END_SRC
+
+
 * Custom key bindings
 ** Quickly revert a buffer
 Useful if file changed on disk
@@ -458,7 +441,7 @@ Useful if file changed on disk
 #+END_SRC
 ** Setup Org Capture
 #+BEGIN_SRC emacs-lisp
-(setq org-default-notes-file (concat org-directory "/notes.org"))
+(setq org-default-notes-file (concat org-directory "/arbejde.org"))
 (define-key global-map "\C-cc" 'org-capture)
 #+END_SRC
 ** Add more states
@@ -514,19 +497,6 @@ Make org files a bit more readable
   (use-package org-journal
     :custom (org-journal-dir "~/org/journal" "Set journal location"))
 #+END_SRC
-* Register RSS feeds
-Uses =elfeed= and =elfeed-org=
-#+BEGIN_SRC emacs-lisp
-(use-package elfeed
-  :bind ("C-x w" . elfeed))
-
-(use-package elfeed-org
-  :config
-  (setq rmh-elfeed-org-files (list (concat config-load-path "elfeed.org")))
-  (elfeed-org))
-#+END_SRC
-The last line uses the [[file:elfeed.org][elfeed.org]] file to register the feeds.
-
 
 * Startup behavior
 ** Toggle fullscreen by default
@@ -551,18 +521,6 @@ And set it in emacs-lisp mode
 ** Empty Scratch buffer
 #+BEGIN_SRC emacs-lisp
 (setq initial-scratch-message nil)
-#+END_SRC
-** Show xkcd comic of the day on start
-Only on mac or Linux as windows support isn't there yet.
-Disabled for now because too slow on start.
-#+BEGIN_SRC emacs-lisp :tangle no
-(cond
- ((string-equal system-type "darwin") ; Mac OS X
-  (progn
-    (showxkcd)))
- ((string-equal system-type "gnu/linux") ; linux
-  (progn
-    (showxkcd))))
 #+END_SRC
 
 * Window behavior
@@ -1101,58 +1059,6 @@ But only for emacs-lisp
 #+BEGIN_SRC emacs-lisp
   (use-package suggest)
 #+END_SRC
-* MySQL
-** Always make MySQL the default product
-#+BEGIN_SRC emacs-lisp
-(require 'sql)
-(sql-set-product "mysql")
-#+END_SRC
-** Enable =sqlup-mode=
-#+BEGIN_SRC emacs-lisp
-(use-package sqlup-mode
-  :config (add-hook 'sql-mode-hook 'sqlup-mode))
-#+END_SRC
-** Enable =mysql-to-org=
-I love this package
-#+BEGIN_SRC emacs-lisp
-(use-package mysql-to-org
-  :config
-  (add-hook 'sql-mode-hook 'mysql-to-org-mode))
-#+END_SRC
-* PHP
-** Enable =php-mode=
-And a bunch of hooks with it
-And set PSR-2 as coding style
-#+BEGIN_SRC emacs-lisp
-  (use-package php-mode
-    :config
-    (add-hook 'php-mode-hook 'flycheck-mode)
-    (add-hook 'php-mode-hook 'electric-operator-mode)
-    (add-hook 'php-mode-hook 'dumb-jump-mode)
-    (add-hook 'php-mode-hook 'php-enable-psr2-coding-style))
-#+END_SRC
-** Enable =company-php=
-#+BEGIN_SRC emacs-lisp
-  (use-package company-php
-    :config
-    (add-hook 'php-mode-hook 'company-mode)
-    (add-hook 'php-mode-hook '(lambda ()
-                                (if (not (member 'php-mode company-dabbrev-code-modes))
-                                    (add-to-list 'company-dabbrev-code-modes 'php-mode)))))
-#+end_SRC
-** Enable =php-eldoc=
-#+BEGIN_SRC emacs-lisp
-  (setq auto-complete-mode nil) ;; Hack while my PR is pending
-  (use-package php-eldoc
-    :diminish eldoc-mode
-    :config (add-hook 'php-mode-hook 'php-eldoc-enable))
-#+END_SRC
-** Enable =phpcbf=
-#+BEGIN_SRC emacs-lisp
-  (use-package phpcbf
-    :config (setq phpcbf-standard "PSR2"))
-#+END_SRC
-
 * Web
 ** Enable =web-mode=
 So much better than =html-mode=
@@ -1291,30 +1197,6 @@ Quick custom function to integrate with the moq tool to generate quick mocks
       (find-file test-file)))
 #+END_SRC
 
-* Python
-** Setup =python-mode=
-Need to install IPython first with =pip install ipython=.
-Assuming that it would be at least IPython 5 so ask for =simple-prompt=.
-#+BEGIN_SRC emacs-lisp
-  (add-hook 'python-mode-hook 'electric-operator-mode)
-  (setq python-shell-interpreter "ipython"
-        python-shell-interpreter-args "--simple-prompt -i")
-#+END_SRC
-** Enable =company-jedi=
-#+BEGIN_SRC emacs-lisp
-  (use-package company-jedi
-    :config (add-to-list 'company-backends 'company-jedi))
-#+END_SRC
-** Custom functions for pipenv
-#+BEGIN_SRC emacs-lisp
-  (defun pipenv-activate ()
-    (interactive)
-    (pythonic-activate (shell-command-to-string "pipenv --venv")))
-
-  (defun pipenv-deactivate ()
-    (interactive)
-    (pythonic-deactivate))
-#+END_SRC
 * Docker
 ** Setup =Dockerfile-mode=
 #+BEGIN_SRC emacs-lisp
@@ -1538,6 +1420,14 @@ Just need to place it in the extra folder.
     :config (setq load-dirs (concat config-load-path "extra/")))
 #+END_SRC
 
+* ASCIIDOC
+(use-package adoc-mode
+  :mode "\\.adoc\\'")
+
+* Recent files
+(recentf-mode 1)
+(setq recentf-max-menu-items 25)
+(global-set-key "\C-x\ \C-r" 'recentf-open-files)
 
 * Key Frequency
 Trying the =keyfreq= package to monitor my command usage
@@ -1550,3 +1440,5 @@ Trying the =keyfreq= package to monitor my command usage
 * Cheat Sheet
 Thanks to the =cheatsheet= package, I can quickly see what are my favorite keys bindings
 #+INCLUDE: "./cheatsheet.org"
+* Abbreviation
+#+INCLUDE: "./mogens_abbrevs.org"

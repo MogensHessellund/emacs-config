@@ -106,6 +106,12 @@ Best git client
 #+BEGIN_SRC emacs-lisp
   (use-package git-timemachine)
 #+END_SRC
+** Add =magit-gh-pull=
+Really useful to create github PRs from magit
+#+BEGIN_SRC emacs-lisp
+  (use-package magit-gh-pulls
+    :config (add-hook 'magit-mode-hook 'turn-on-magit-gh-pulls))
+#+END_SRC
 
 
 * Set personal information
@@ -857,6 +863,12 @@ Great to fold text
     (global-set-key (kbd "C-c n n") 'origami-show-only-node)
     (global-set-key (kbd "C-c n TAB") 'origami-recursively-toggle-node))
 #+END_SRC
+** Enable =eyebrowse=
+To manage window configuration
+#+BEGIN_SRC emacs-lisp
+  (use-package eyebrowse
+    :config (eyebrowse-mode t))
+#+END_SRC
 * Edition
 ** Enable =multiple-cursors=
 Useful to edit multiple similar lines
@@ -1195,6 +1207,15 @@ Quick custom function to integrate with the moq tool to generate quick mocks
       (shell-command
        (concat "moq -out " test-file " . " interface))
       (find-file test-file)))
+#+END_SRC
+** See test coverage faster
+Simple function to see the test coverage of the current open buffer
+#+BEGIN_SRC emacs-lisp
+    (defun go-coverage-here ()
+      (interactive)
+      (shell-command "go test . -coverprofile=cover.out")
+      (go-coverage "cover.out")
+      (rotate:even-horizontal))
 #+END_SRC
 
 * Docker

@@ -28,8 +28,6 @@ Inspired by [[https://ogbe.net/emacsconfig.html][ogbe.net]] and [[https://glyph.
   (setq gnutls-verify-error t)
 #+END_SRC
 ** TODO Do more with local certs and check bad ssl
-
-
 * Automatic package installation
 ** Install =use-package=
 And its dependencies if needed.
@@ -52,48 +50,6 @@ And force the install of missing packages.
 (setq use-package-always-ensure t)
 #+END_SRC
 
-* Configure Helm
-** Make everything fuzzy and also rebind functions.
-#+BEGIN_SRC emacs-lisp
-  (use-package flx)
-  (use-package helm-flx)
-  (use-package helm
-    :demand
-    :diminish helm-mode
-    :bind (("M-x" . helm-M-x)
-           ("M-y" . helm-show-kill-ring)
-           ("C-x b" . helm-mini)
-           ("C-x C-f" . helm-find-files)
-           ("C-x r l" . helm-bookmarks)
-           ("C-c s" . helm-occur)
-           :map helm-find-files-map ;; I like these from Ido
-           ("C-<tab>"         . helm-execute-persistent-action)
-           ("C-<backspace>" . helm-find-files-up-one-level))
-    :config
-    (helm-mode 1)
-    (helm-flx-mode +1)
-    (setq helm-M-x-fuzzy-match t)
-    (setq helm-locate-fuzzy-match t)
-    (setq helm-lisp-fuzzy-completion t)
-    (setq helm-bookmark-show-location t))
-#+END_SRC
-** Imenu + Helm with =imenu-anywhere=
-But I find pulling from other buffer confusing so I limit to current buffer
-#+BEGIN_SRC emacs-lisp
-  (defun imenu-anywhere-same-buffer-p (current other)
-    (eq current other))
-
-  (use-package imenu-anywhere
-    :bind (("C-c C-i" . helm-imenu-anywhere))
-    :config (setq imenu-anywhere-buffer-filter-functions
-                  '(imenu-anywhere-same-buffer-p)))
-#+END_SRC
-** Install =helm-system-packages=
-#+BEGIN_SRC emacs-lisp
-  (use-package helm-system-packages)
-#+END_SRC
-
-
 * Version Control
 For now it's just git, but can add more systems as necessary.
 ** Enable magit
@@ -112,7 +68,40 @@ Really useful to create github PRs from magit
   (use-package magit-gh-pulls
     :config (add-hook 'magit-mode-hook 'turn-on-magit-gh-pulls))
 #+END_SRC
+* IDO Mode
+#+BEGIN_SRC emacs-lisp
 
+(progn
+  ;; make buffer switch command do suggestions, also for find-file command
+  (require 'ido)
+  (ido-mode 1)
+
+  ;; show choices vertically
+  (if (version< emacs-version "25")
+      (progn
+        (make-local-variable 'ido-separator)
+        (setq ido-separator "\n"))
+    (progn
+      (make-local-variable 'ido-decorations)
+      (setf (nth 2 ido-decorations) "\n")))
+
+  ;; show any name that has the chars you typed
+  (setq ido-enable-flex-matching t)
+  ;; use current pane for newly opened file
+  (setq ido-default-file-method 'selected-window)
+  ;; use current pane for newly switched buffer
+  (setq ido-default-buffer-method 'selected-window)
+
+  (setq ido-everywhere t)
+
+  (setq ido-create-new-buffer 'always)
+
+  (setq ido-file-extensions-order '(".adoc" ".org" ".txt"".emacs" ".xml" ".el" ".ini" ".cfg" ".cnf"))
+  ;; stop ido from suggesting when naming new file
+  (define-key (cdr ido-minor-mode-map-entry) [remap write-file] nil))
+
+
+#+END_SRC emacs-lisp
 
 * Set personal information
 #+BEGIN_SRC emacs-lisp
@@ -421,12 +410,6 @@ Useful if file changed on disk
     "Return the absolute address of an org file, given its relative name."
     (concat (file-name-as-directory org-directory) filename))
 
-  (defun org-find-file ()
-    "Leverage Helm to quickly open any org files."
-    (interactive)
-    (find-file (concat org-directory
-                       (helm-comp-read "Select your org file: "
-                                       (directory-files org-directory nil "\.org$")))))
 #+END_SRC
 ** Use syntax highlighting in source blocks while editing
 #+BEGIN_SRC emacs-lisp
@@ -457,11 +440,6 @@ Useful if file changed on disk
   (setq org-todo-keyword-faces
              '(("WAIT" . "yellow")
                ("CANCELED" . (:foreground "blue" :weight bold))))
-#+END_SRC
-** Enable =flyspell=
-#+BEGIN_SRC emacs-lisp
-  (add-hook 'org-mode-hook 'flyspell-mode)
-  (add-hook 'text-mode-hook 'flyspell-mode)
 #+END_SRC
 ** Setup =org-babel=
    Get additional languages?
@@ -755,7 +733,7 @@ Thanks to [[https://github.com/magnars/.emacs.d/blob/master/defuns/editing-defun
 * Parenthesis Support
 #+BEGIN_SRC emacs-lisp
 (show-paren-mode 1)
-(electric-pair-mode 1)
+(electric-pair-mode 0)
 #+END_SRC
 
 * Package management
@@ -950,87 +928,6 @@ And use it to replace normal narrowing functions
     :diminish fancy-narrow-mode)
 #+END_SRC
 * General Code
-** Enable =projectile=
-And get a shorter modeline, thanks to [[https://github.com/purcell/emacs.d/blob/master/lisp/init-projectile.el#L10]]
-#+BEGIN_SRC emacs-lisp
-  (use-package ag)
-  (use-package helm-ag)
-  (setq projectile-go-function nil) ;; temporary workaround
-  (use-package projectile
-    :config
-    (projectile-mode)
-    (setq-default projectile-mode-line
-     '(:eval
-       (if (file-remote-p default-directory)
-           " Proj"
-         (format " Proj[%s]" (projectile-project-name)))))
-    (add-to-list 'projectile-globally-ignored-directories "node_modules"))
-#+END_SRC
-
-With a twist of helm
-#+BEGIN_SRC emacs-lisp
-(use-package helm-projectile
-  :bind (("C-c v" . helm-projectile)
-         ("C-c C-v" . helm-projectile-ag)
-         ("C-c w" . helm-projectile-switch-project)))
-#+END_SRC
-
-** Enable =company=
-#+BEGIN_SRC emacs-lisp
-  (use-package company
-    :diminish company-mode
-    :config
-    (add-hook 'after-init-hook 'global-company-mode)
-    (setq company-minimum-prefix-length 2)
-    (setq company-dabbrev-downcase nil))
-  (use-package company-go)
-#+END_SRC
-** Enable =flycheck=
-#+BEGIN_SRC emacs-lisp
-  (use-package flycheck
-    :diminish flycheck-mode
-    :config (flycheck-mode 1)
-    (setq flycheck-phpcs-standard "PSR2")
-    (add-hook 'python-mode-hook 'flycheck-mode)
-    (add-hook 'emacs-lisp-mode-hook 'flycheck-mode)
-    (add-hook 'json-mode-hook 'flycheck-mode)
-    (add-hook 'rjsx-mode-hook 'flycheck-mode))
-#+END_SRC
-
-Add a little helm twist to it
-#+BEGIN_SRC emacs-lisp
-(use-package helm-flycheck
-  :bind ("C-c f" . helm-flycheck))
-#+END_SRC
-
-** Enable =electric-operator=
-And add a couple of rules for PHP and JS
-#+BEGIN_SRC emacs-lisp
-  (use-package electric-operator
-    :config
-    (electric-operator-add-rules-for-mode 'php-mode
-                                          (cons " - >" "->"))
-    (electric-operator-add-rules-for-mode 'php-mode
-                                          (cons " / /" "// "))
-    (electric-operator-add-rules-for-mode 'php-mode
-                                          (cons " = > " " => "))
-    (electric-operator-add-rules-for-mode 'php-mode
-                                          (cons " < ?" "<?"))
-    (electric-operator-add-rules-for-mode 'js2-mode
-                                          (cons " = > " " => "))
-    (electric-operator-add-rules-for-mode 'js2-jsx-mode
-                                          (cons " = > " " => "))
-    (electric-operator-add-rules-for-mode 'rjsx-mode
-                                          (cons " = > " " => ")))
-#+END_SRC
-
-** Enable =dumb-jump=
-Great package to jump to definition
-#+BEGIN_SRC emacs-lisp
-  (use-package dumb-jump
-    :config (setq dumb-jump-aggressive nil))
-#+END_SRC
-
 ** Enable =highlight-numbers=
 Make numbers in source code more noticeable
 #+BEGIN_SRC emacs-lisp
@@ -1135,89 +1032,6 @@ Useful for React
     ;; `M-x package-install [ret] company`
     (company-mode +1))
 #+END_SRC
-* Go
-A lot of the config is based on gocode, godef, goimports and gotags
-packages that you should install separately.
-#+BEGIN_SRC bash :tangle no
-  go get -u github.com/nsf/gocode
-  go get -u github.com/rogpeppe/godef
-  go get -u golang.org/x/tools/cmd/goimports
-  go get -u github.com/jstemmer/gotags
-  go get github.com/matryer/moq
-#+END_SRC
-
-** Enable =go-mode=
-Absolutely necessary if working in Go
-#+BEGIN_SRC emacs-lisp
-  (use-package go-mode
-    :config
-    (add-hook 'before-save-hook #'gofmt-before-save)
-    (add-hook 'go-mode-hook 'flycheck-mode)
-    (add-hook 'go-mode-hook 'dumb-jump-mode)
-    (setq go-packages-function 'go-packages-go-list))
-#+END_SRC
-
-** Enable =company-go=
-#+BEGIN_SRC emacs-lisp
-  (use-package company-go
-    :config
-    (add-hook 'go-mode-hook 'company-mode)
-    (add-to-list 'company-backends 'company-go))
-#+END_SRC
-
-** Enable =go-stackstracer=
-#+BEGIN_SRC emacs-lisp
-  (use-package go-stacktracer)
-#+END_SRC
-
-** Enable =go-add-tags=
-#+BEGIN_SRC emacs-lisp
-  (use-package go-add-tags)
-#+END_SRC
-
-** Enable =go-eldoc=
-#+BEGIN_SRC emacs-lisp
-  (use-package go-eldoc
-    :diminish eldoc-mode
-    :config (add-hook 'go-mode-hook 'go-eldoc-setup))
-#+END_SRC
-
-** Enable =go-gopath=
-#+BEGIN_SRC emacs-lisp
-  (use-package go-gopath)
-#+END_SRC
-
-** Enable =go-direx=
-#+BEGIN_SRC emacs-lisp
-  (use-package go-direx)
-#+END_SRC
-
-** Enable =gotest=
-#+BEGIN_SRC emacs-lisp
-  (use-package gotest)
-#+END_SRC
-
-** Integrate =moq=
-Quick custom function to integrate with the moq tool to generate quick mocks
-#+BEGIN_SRC emacs-lisp
-  (defun moq ()
-    (interactive)
-    (let ((interface (word-at-point))
-          (test-file (concat (downcase (word-at-point)) "_test.go")))
-      (shell-command
-       (concat "moq -out " test-file " . " interface))
-      (find-file test-file)))
-#+END_SRC
-** See test coverage faster
-Simple function to see the test coverage of the current open buffer
-#+BEGIN_SRC emacs-lisp
-    (defun go-coverage-here ()
-      (interactive)
-      (shell-command "go test . -coverprofile=cover.out")
-      (go-coverage "cover.out")
-      (rotate:even-horizontal))
-#+END_SRC
-
 * Docker
 ** Setup =Dockerfile-mode=
 #+BEGIN_SRC emacs-lisp
@@ -1344,7 +1158,7 @@ Thanks to http://www.howardism.org/Technical/Emacs/eshell-present.html
             (lambda ()
               (define-key eshell-mode-map (kbd "C-M-a") 'eshell-previous-prompt)
               (define-key eshell-mode-map (kbd "C-M-e") 'eshell-next-prompt)
-              (define-key eshell-mode-map (kbd "M-r") 'helm-eshell-history)))
+              ))
 #+END_SRC
 ** Close window on exit
 #+BEGIN_SRC emacs-lisp
@@ -1371,10 +1185,6 @@ Thanks to http://www.howardism.org/Technical/Emacs/eshell-present.html
     (add-hook 'yaml-mode-hook 'flycheck-mode)
     (add-hook 'yaml-mode-hook 'flyspell-mode))
 #+END_SRC
-** Enable =flycheck-yamllint=
-#+BEGIN_SRC emacs-lisp
-  (use-package flycheck-yamllint)
-#+END_SRC
 ** Enable indentation highlight
 #+BEGIN_SRC emacs-lisp
   (use-package highlight-indentation
@@ -1397,23 +1207,6 @@ Thanks to http://www.howardism.org/Technical/Emacs/eshell-present.html
 #+BEGIN_SRC emacs-lisp
   (use-package ob-restclient)
 #+END_SRC
-* PlantUML
-** Enable =plantuml-mode=
-#+BEGIN_SRC emacs-lisp
-  (use-package plantuml-mode)
-#+END_SRC
-** Download and hook up plantuml.jar
-#+BEGIN_SRC emacs-lisp
-  (let ((plantuml-directory (concat config-load-path "extra/"))
-        (plantuml-link "https://superb-dca2.dl.sourceforge.net/project/plantuml/plantuml.jar"))
-    (let ((plantuml-target (concat plantuml-directory "plantuml.jar")))
-      (if (not (f-exists? plantuml-target))
-          (progn (message "Downloading plantuml.jar")
-                 (shell-command
-                  (mapconcat 'identity (list "wget" plantuml-link "-O" plantuml-target) " "))
-                 (kill-buffer "*Shell Command Output*")))
-      (setq org-plantuml-jar-path plantuml-target)))
-#+END_SRC
 * Extra Packages
 No need to configure, just handy to have.
 #+BEGIN_SRC emacs-lisp
@@ -1430,7 +1223,6 @@ No need to configure, just handy to have.
   (use-package keychain-environment)
   (use-package prodigy)
   (use-package vlf)
-  (use-package helm-flyspell)
 #+END_SRC
 
 * Extra file loading
@@ -1467,4 +1259,6 @@ Trying the =keyfreq= package to monitor my command usage
 Thanks to the =cheatsheet= package, I can quickly see what are my favorite keys bindings
 #+INCLUDE: "./cheatsheet.org"
 * Abbreviation
-#+INCLUDE: "./mogens_abbrevs.org"
+#+BEGIN_SRC emacs-lisp
+  (load-file "~/mogens_abbrevs.el")
+#+END_SRC

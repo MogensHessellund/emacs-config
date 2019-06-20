@@ -28,28 +28,6 @@ Inspired by [[https://ogbe.net/emacsconfig.html][ogbe.net]] and [[https://glyph.
   (setq gnutls-verify-error t)
 #+END_SRC
 ** TODO Do more with local certs and check bad ssl
-* Automatic package installation
-** Install =use-package=
-And its dependencies if needed.
-#+BEGIN_SRC emacs-lisp
-(mapc
- (lambda (package)
-   (if (not (package-installed-p package))
-       (progn
-         (package-refresh-contents)
-         (package-install package))))
- '(use-package diminish bind-key))
-#+END_SRC
-** Trigger =use-package=
-And force the install of missing packages.
-#+BEGIN_SRC emacs-lisp
-(eval-when-compile
-  (require 'use-package))
-(require 'diminish)
-(require 'bind-key)
-(setq use-package-always-ensure t)
-#+END_SRC
-
 * Version Control
 For now it's just git, but can add more systems as necessary.
 ** Enable magit
@@ -57,16 +35,6 @@ Best git client
 #+BEGIN_SRC emacs-lisp
 (use-package magit
   :bind ("C-x g" . magit-status))
-#+END_SRC
-** Add =git-timemachine=
-#+BEGIN_SRC emacs-lisp
-  (use-package git-timemachine)
-#+END_SRC
-** Add =magit-gh-pull=
-Really useful to create github PRs from magit
-#+BEGIN_SRC emacs-lisp
-  (use-package magit-gh-pulls
-    :config (add-hook 'magit-mode-hook 'turn-on-magit-gh-pulls))
 #+END_SRC
 * IDO Mode
 #+BEGIN_SRC emacs-lisp
@@ -436,27 +404,10 @@ Useful if file changed on disk
 ** Add more states
 #+BEGIN_SRC emacs-lisp
   (setq org-todo-keywords
-        '((sequence "TODO(t)" "WAIT(w@/!)" "|" "DONE(d!)" "CANCELED(c@)")))
+        '((sequence "TODO(t)" "WAIT(w@/!)" "NEXT(n)" "|" "DONE(d!)" "CANCELED(c@)")))
   (setq org-todo-keyword-faces
-             '(("WAIT" . "yellow")
+             '(("WAIT" . "PURPLE")
                ("CANCELED" . (:foreground "blue" :weight bold))))
-#+END_SRC
-** Setup =org-babel=
-   Get additional languages?
-   Load them all
-#+BEGIN_SRC emacs-lisp
-  (org-babel-do-load-languages
-   (quote org-babel-load-languages)
-   (quote ((emacs-lisp . t)
-           (dot . t)
-           (plantuml . t)
-           (python . t)
-           (gnuplot . t)
-           (shell . t)
-           (ledger . t)
-           (org . t)
-           (latex . t)
-           (haskell . t))))
 #+END_SRC
 ** Enable =org-bullets=
 Make org files a bit more readable
@@ -477,10 +428,10 @@ Make org files a bit more readable
   (global-set-key (kbd "<f5>") 'org-find-file)
 #+END_SRC
 ** Use =org-journal=
-#+BEGIN_SRC emacs-lisp
+
   (use-package org-journal
     :custom (org-journal-dir "~/org/journal" "Set journal location"))
-#+END_SRC
+
 
 * Startup behavior
 ** Toggle fullscreen by default
@@ -737,16 +688,6 @@ Thanks to [[https://github.com/magnars/.emacs.d/blob/master/defuns/editing-defun
 #+END_SRC
 
 * Package management
-** Enable =paradox=
-#+BEGIN_SRC emacs-lisp
-  (use-package paradox
-    :custom
-    (paradox-execute-asynchronously t)
-    :config
-    (paradox-enable))
-#+END_SRC
-
-
 * Navigation
 ** Enable =avy=
 #+BEGIN_SRC emacs-lisp
@@ -758,7 +699,9 @@ Thanks to [[https://github.com/magnars/.emacs.d/blob/master/defuns/editing-defun
 
 ** Enable =win-switch=
 Super nice to switch between frames and buffers
-#+BEGIN_SRC emacs-lisp
+
+*** ToDo - 2019-04-09-0847 få det til at virke igen
+BEGIN_SRC emacs-lisp
 (use-package win-switch
   :bind ("C-x o" . win-switch-dispatch)
   :config
@@ -766,7 +709,7 @@ Super nice to switch between frames and buffers
   (setq win-switch-feedback-background-color "purple")
   (setq win-switch-feedback-foreground-color "white")
   (win-switch-setup-keys-default))
-#+END_SRC
+END_SRC
 
 ** Enable =which-key=
 Very nice if you don't have a cheat sheet at hand
@@ -1177,6 +1120,15 @@ Thanks to http://www.howardism.org/Technical/Emacs/eshell-present.html
 #+BEGIN_SRC emacs-lisp
   (setq dired-listing-switches "-alh")
 #+END_SRC
+** dired subtree
+#+BEGIN_SRC emacs-lisp
+(use-package dired-subtree
+  :config
+  (bind-keys :map dired-mode-map
+             ("i" . dired-subtree-insert)
+             (";" . dired-subtree-remove)))
+#+END_SRC
+
 * YAML
 ** Enable =yaml-mode=
 #+BEGIN_SRC emacs-lisp
@@ -1256,9 +1208,6 @@ Trying the =keyfreq= package to monitor my command usage
     (keyfreq-mode 1)
     (keyfreq-autosave-mode 1))
 #+END_SRC
-* Cheat Sheet
-Thanks to the =cheatsheet= package, I can quickly see what are my favorite keys bindings
-#+INCLUDE: "./cheatsheet.org"
 * Abbreviation
 #+BEGIN_SRC emacs-lisp
   (load-file "~/emacs-config/mogens-abbrevs.el")
@@ -1274,11 +1223,27 @@ Thanks to the =cheatsheet= package, I can quickly see what are my favorite keys 
 
    (setq org-agenda-span 21)
 
-   (add-to-list 'load-path "/home/mogens/emacs-config/org-drill")
+   (add-to-list 'load-path "~/emacs-config/org-drill")
 
    (require 'org-drill)
 
 ;; 2019-02-20-0859 jira - http://baohaojun.github.io/org-jira.html
    (setq jiralib-url "https://jira.cgi.com")
+
+;; 2017-04-18 calendar : start mandag og vis ugenummer
+;; http://stackoverflow.com/questions/21364948/how-to-align-the-calendar-with-week-number-as-the-intermonth-text
+(setq calendar-week-start-day 1)
+
+(setq calendar-intermonth-text
+      '(propertize
+        (format "%2d"
+                (car
+                 (calendar-iso-from-absolute
+                  (calendar-absolute-from-gregorian (list month day year)))))
+        'font-lock-face 'font-lock-warning-face))
+
+(setq calendar-intermonth-header
+      (propertize "Wk"                  ; or e.g. "KW" in Germany
+                  'font-lock-face 'font-lock-keyword-face))
 
 #+END_SRC

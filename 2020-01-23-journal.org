@@ -199,6 +199,7 @@ Kriteriet for indsættelse er at value-feltet i DSD ændres.
 * User
 
 
+#+BEGIN_EXAMPLE
 
                        +-------------------------------+      +----------------------+
                        |                               |      |                      |
@@ -213,6 +214,7 @@ Kriteriet for indsættelse er at value-feltet i DSD ændres.
                        |      DC_STAFF_IDENTIFIER      |
                        |                               |
                        +-------------------------------+
+#+END_EXAMPLE
 
 
 ** D_STAFF
@@ -244,7 +246,7 @@ _hist-tabellen beriges med historikkolonnerne, hvorefter tabellen kan indlæses
 
 
 
-** Forløb, henvisninger og kontakter
+* Forløb, henvisninger og kontakter
 
 I "Udkast CI tabeller til udvidelse" er anført historikbehov for henvisninger, men det er ikke angivet for forløb og kontakter
 
@@ -252,7 +254,7 @@ Data findes overvejende i de 3 tabeller: ActivityServiceActivity (ASA), Activity
 
 Relationerne mellem forløb, henvisning og kontakter i CI er som følger
 
-
+#+BEGIN_EXAMPLE
                           +-------------------------------+
                           |                               |
                           |   F_COMMITMENT                |
@@ -266,10 +268,9 @@ Relationerne mellem forløb, henvisning og kontakter i CI er som følger
             +-- |      F_CONTACT             |---->|  F_REFFERAL |
                 |                            |     |             |
                 +----------------------------+     +-------------+
+#+END_EXAMPLE
 
-
-
-*** Forløb
+** Forløb, F_COMMITMENT
 
 F_Commitment indeholder forløb med oplysninger om fra- og tildato henvisning til patient, enheder og medarbejdere (Performing og Responsible Unit/Staff) samt nogle statusmarkeringer, klassifikation mm.
 
@@ -279,12 +280,27 @@ Ud over evt. ændringer til enheder og medarbejdere, vil forløbene historisk ge
 
 Da der ikke er angivet ønske om historik på denne tabel, sker der ikke oprettelse af en historisk tabel i CI+ databasen.
 
+*** Referencer
+- Patient (ID)
+- Group (ID)
+- Responsible Unit (ID)
+- Responsible Staff (ID)
+- Pregnancy  (ID)
+- ChildHealthcare (ID)
+- PerformingUnit (ID)
+- ExternalCommitment (ID)
+- PerformingStaff (ID)
+- Classification (DV_TERM)
+- MotivationTerm (DV_TERM)
+- Priority (DV_TERM)
+- Status (D_HCM_STATUS)
 
-*** Henvisninger
+** Henvisninger, F_REFFERAL
 
 F_Referral indeholder henvisninger. Ligesom ved de øvrige tabeller, hentes data fra Spider-databasen fra ASA, ASE og ASH.
 Derudover ligger henvisnininger i DatumServiceDatum gemt i xml-format som følger
 
+#+BEGIN_EXAMPLE
 <ClinicalInformation><Type>2</Type>
 <SubType>0</SubType>
 <Collection><PlannedTime>2017-10-20 16:06:40</PlannedTime>
@@ -299,36 +315,85 @@ Derudover ligger henvisnininger i DatumServiceDatum gemt i xml-format som følge
 </CollectionType>
 <Side>0</Side>
 </ClinicalInformation>
+#+END_EXAMPLE
+
 
 Som ved commitment er der referencer til patient, enheder og medarbejdere (Performing og Responsible Unit/Staff) og RoS. Der er også en id-reference til commitment.
 Der er samme statusmarkeringer, type 164 ("se.cambiosys.spider.HealthCareModel.HCM_Closed") og 160 ("se.cambiosys.spider.HealthCareModel.HCM_Cancelled"), og undervejs har tilstandende gennemløbet "se.cambiosys.spider.HealthCareModel.HCM_Planned" mm.
 
 Der tilføjes fra- og tildato, således at historiske statusskift og ændringer fastholdes.
 
+*** Referencer
 
+- AdminCategory (DV_TERM)
+- Category_1 (DV_TERM)
+- Category_2 (DV_TERM)
+- Commitment_ID
+- Group_ID
+- HCM_Status].[D_HCM_STATUS] ([Status_ID])
+- InternalReferral_ID
+- MedicalPriority (DV_TERM)
+- MotivationTerm (DV_TERM)
+- Patient_ID
+- ReceivingStaff_ID
+- ReceivingUnit_ID
+- ReferralReferenceType (DV_TERM)
+- ReferralType (DV_TERM)
+- RequestForm_ID. (D_JOURNALFORM)
+- RequestingContact_ID
+- RequestingStaff_ID
+- RequestingUnit_ID
+- RequestNote_ID
+- SourceOfReferral (DV_TERM)
+- Status (D_REFERRAL_STATUS)
+- Type (D_REFERRAL_TYPE)
 
-
-*** Kontakter
+** Kontakter
 
 F_Contact tabellen er omfattende med 68 kolonner og mange join med ASE og Attribute-tabellerne. I AttributeServiceValue gemmes en række oplysninger, blandt andet om akut-værdi, planlagt, diskretion mm.
 
 Der er ikke angivet behov for historik omkring kontakter,
 
-Særligt omkring CAVE
-F_WARNING og FC_WARNING_ATTRIBUTE
+
+*** Referencer
+- AdminCategory (DV_TERM)
+- AdmissionMethod (DV_TERM)
+- AdmissionType (DV_TERM)
+- AdmittedFromUnit_ID
+- Agreement_ID
+- CancellationReason (DV_TERM)
+- CareReason (DV_TERM)
+- Category_1 (DV_TERM)
+- Category_2 (DV_TERM)
+- CodeValidator (D_STAFF)
+- Commitment_ID
+- ConsultationType (DV_TERM)
+- ContactType (D_CONTACT_TYPE)
+- ContinuedCareplan (DV_TERM)
+- CurrentLocation (DV_TERM)
+- CustomerUnit_ID
+- DelayedDischargeReason (DV_TERM)
+- DischargedToUnit_ID
+- DischargeMethod (DV_TERM)
+- DischargeStaff_ID
+- DischargeType (DV_TERM)
+- FuturePriority (DV_TERM)
+- Group_ID
+- GroupContact_ID
+- Identification (DV_TERM)
+- JournalNote_ID
+- JournalNoteStatus (D_JOURNAL_STATUS)
+- Patient_ID
+- PerformingStaff_ID
+- PerformingUnit_ID
+- ReasonNotCoded (DV_TERM)
+- ResponsibleStaff_ID
+- ResponsibleUnit_ID
+- TargetPeriod (DV_TERM)
+- TechnicalUnit_ID
+- VisitType (DV_TERM)
 
 
-
-** F_PRESCRIPTION
-** F_MEDICATION
-** F_MEDICATION_ADMIN
-** FC_MEDICATION_ADMIN
-** FC_MEDICATION_DOSAGE
-** D_DRUG
-** D_ATC
-
-
-Osodu81829
 * Medicin
 
 Der er angivet historikbehov for følgende tabeller. Sammenhængen er illustreret nedenfor.

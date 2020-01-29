@@ -1223,4 +1223,10 @@ Trying the =keyfreq= package to monitor my command usage
 (fset 'curllocal
    "curl -X GET \"\346\346\342\344\344\344\344\344\344localhost:9299\C-e\" -H \"accept: */*\"")
 
+
+;;
+(fset 'foreignkey
+   [?\C-  ?\C-s ?F ?O ?R ?E ?I ?G ?N ?  ?K ?E right right right ?\C-w ?\C-s ?\) left left ?\C-k ?\C-k ?\M-d ?\M-d ?\C-n ?\C-a])
+
+
 #+END_SRC

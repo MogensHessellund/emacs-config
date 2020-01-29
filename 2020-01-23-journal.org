@@ -1,0 +1,440 @@
+* Koncept
+
+Det generelle koncept for at berige CI databasen med historiske tabeller er en en-til-en udvidelse af den enkelte tabel med en _hist version. F.x. at der oprettes en F_JOURNALNOTE_hist tabel, F_JOURNALTABLE_hist tabel osv.
+
+_hist tabellen udvider modertabellen med en fra- og tildato, og evt. en primaryKey. Referencen til modertabellen sker gennem id-kolonnen, svarende til versioneringen i Spider-databasen.
+
+Kriteriet for at indsætte række i _hist-tabellen, er at den konkrete række er forskellig fra andre rækker med samme id i _hist-tabellen, og forskellig fra rækken i modertabellen. Dvs. det er en mere kompakt versionskoncept end Spiders, hvor hele strukturen kopieres i tilfælde af ændring.
+
+De enkelte kolonner i tabellen er enten værdi kolonner eller id-kolonner. Id-kolonner er id-referencer til andre tabeller, f.x. Staff. Såfremt Id ikke ændres er der ikke grund til at indsætte en ny række i _hist-tabellen. Historik på den referede tabel, håndteres på denne. Dvs <Staff>_hist.
+
+Arkiveringsjobbet skal behandle de enkelte CI-tabeller, der ønskes beriget med historik, og lave et tilsvarende udtræk mhp. at afklare om der er en betydende forskel.
+
+
+* Journal
+
+I Spiderdatabasen er journaloplysningerne er primært gemt i Datum-tabellerne, DatumServiceDatum (DSD), DatumServiceExternal (DSE) og DatumServiceHierarchical (DSH). Derudover er der RoS svar i TNG-tabeller og skabeloner i JournalForm tabeller og signeringsoplysninger i Bulk-tabellerne.
+
+TNG- og Bulk-tabellerne indeholder prøvesvar mm i xml-format, der parses i CI's stored procedure så de kan normaliseres ud i kolonner. Det er derfor også nødvendigt for arkiveringsprojektet at lave en tilsvarende parsning, såfremt der er sket en ændring i TNG-referencen.
+
+** JOURNALNOTE Journalnotater
+
+                       +-------------------------------+
+                       |                               |
+                       |      F_JOURNALNOTE            |
+                       |                               |
+                       +-------------------------------+
+                                      ^
+                                      |
+                                      |
+                       +------------------------------------+
+                       |                                    |
+                       |      FE_JOURNALNOTE_ADMINISTRATION |
+                       |                                    |
+                       +------------------------------------+
+
+*** F_JOURNALNOTE
+
+F_JOURNALNOTE indeholder rækker af typen se.cambiosys.spider.JournalModule.JournalNote med udgangspunkt i DSD og DSE
+F_JOURNALNOTE er den overordnede række for journalnotatet.
+
+Tabellen indeholder type, subtype, status og en række id-referencer til Commitment, CareProvider mm
+
+Tabellen indeholder allerede PrimaryKey.
+
+Historiske id-rækker sammenligner med tidligere version og i tilfælde af ændring, f.x. Status eller CareProvider indsættes ny række
+
+
+*** FE_JOURNALNOTE_ADMINISTRATION
+
+Som F_JOURNALNOTE med mere specialiseret med signering
+
+
+** JOURNALTABLE Prøvesvar
+
+
+                       +-------------------------------+
+                       |                               |
+                       |      F_JOURNALTABLE           |
+                       |                               |
+                       +-------------------------------+
+                                      ^
+                                      |
+                                      |
+                       +-------------------------------+
+                       |                               |
+                       |      FC_JOURNALTABLE_COLUMN   |
+                       |                               |
+                       +-------------------------------+
+                                      ^
+                                      |
+                                      |
+                       +-------------------------------+
+                       |                               |
+                       |      FC_JOURNALTABLE_VALUE    |
+                       |                               |
+                       +-------------------------------+
+
+*** F_JOURNALTABLE
+F_JOURNALTABLE indeholder referencer til skabeloner og RoS prøvesvar fra Spider, med reference til spider3.TNGModuleTNG der indeholder xml gemt i binært format. Dvs. der sker en parsning af XML-strukturen.
+
+
+*** FC_JOURNALTABLE_COLUMN
+F_JOURNALTABLE_COLUMN har en en-til-mange relation til F_JOURNAL. Den består af JournalRecords gemt i DSD.
+
+
+*** FC_JOURNALTABLE_VALUE
+FC_JOURNALTABLE_VALUE har en reference til JOURNALTABLE_COLUMN og dermed til JOURNALTABLE,
+Den indeholder oplysninger om de enkelte prøvesvar med referencer til JOURNALVALUE gemt som JournalRecords.
+F.x Puls	30
+
+
+** JOURNALFORM
+
+                       +-------------------------------+
+                       |                               |
+                       |      D_JOURNALFORM            |
+                       |                               |
+                       +-------------------------------+
+                                      ^
+                                      |
+                                      |
+                       +-------------------------------+
+                       |                               |
+                       |      DC_JOURNALFORM           |
+                       |                               |
+                       +-------------------------------+
+
+
+*** D_JOURNALFORM
+
+F.x sårjournal.
+Indeholder referencer til notater fra spider.JournalModuleJournalForm
+
+
+*** DC_JOURNALFORM
+
+Hierrarki af journalforme
+
+
+** JOURNALVALUE
+
+                       +-------------------------------+      +----------+
+                       |                               |      |          |
+                       |      F_JOURNALNOTE            |  --> |  Patient |
+                       |                               |      |          |
+                       +-------------------------------+      +----------+
+                                      ^
+                                      |
+                                      |
+                       +-------------------------------+      +----------------------+
+                       |                               |      |                      |
+                       |      F_JOURNALVALUE           | <--  | FC_JOURNALVALUE_CODE |
+                       |                               |      |                      |
+                       +-------------------------------+      +----------------------+
+                                      ^
+                                      |
+                                      |
+                       +-------------------------------+
+                       |                               |
+                       |      F_JOURNALVALUE_TEXT      |
+                       |                               |
+                       +-------------------------------+
+
+
+*** FC_JOURNALVALUE
+Indeholder journalrecords med 1-til-mange reference til JOURNALNOTE
+
+*** FC_JOURNALVALUE_CODE
+
+F.x.
+Klassifikation af sygdomme:DE660H	DE660H	Ekstrem fedme, BMI 55+
+
+mange til mange opløsning af Concept (ConceptServiceTerm / terminologier) og Journalværdier
+
+*** FC_JOURNALVALUE_CODE_STAFF
+
+mange til mange opløsning af Staff og JournalValue
+
+De parses iøvrigt ud fra XML
+
+
+*** F_JOURNALVALUE_TEXT
+
+F_JOURNALVALUE_TEXT er en specialisering af FC_JOURNALVALUE, der indholder fritekst nøgleord
+
+Tabellen referer til FC_JOURNALVALUE tabellen.
+Tabellen beriges med til- og fradato.
+Kriteriet for indsættelse er at value-feltet i DSD ændres.
+
+
+
+
+
+
+
+                       +-------------------------------+      +----------+
+                       |                               |      |          |
+                       |      F_JOURNALNOTE            |  --> |  Patient |
+                       |                               |      |          |
+                       +-------------------------------+      +----------+
+                                      ^
+                                      |
+                                      |
+                       +-------------------------------+      +----------------------+
+                       |                               |      |                      |
+                       |      F_JOURNALVALUE           | <--  | FC_JOURNALVALUE_CODE |
+                       |                               |      |                      |
+                       +-------------------------------+      +----------------------+
+                                      ^
+                                      |
+                                      |
+                       +-------------------------------+
+                       |                               |
+                       |      F_JOURNALVALUE_TEXT      |
+                       |                               |
+                       +-------------------------------+
+
+
+* User
+
+
+
+                       +-------------------------------+      +----------------------+
+                       |                               |      |                      |
+                       |   D_STAFF                     | <--> | D_USER               |
+                       |                               |      |                      |
+                       +-------------------------------+      +----------------------+
+                                      ^
+                                      |
+                                      |
+                       +-------------------------------+
+                       |                               |
+                       |      DC_STAFF_IDENTIFIER      |
+                       |                               |
+                       +-------------------------------+
+
+
+** D_STAFF
+
+Stafftabellen indeholder oplysninger om medarbejderens rolle og underrolle (profession og subprofession). Brugerdata hentes fra spider3.UserServiceUser og rollerne fra spider3.ResourceServiceResource. Derudover er der en 1-til-1 relation til USER tabellen.
+_hist-tabellen beriges med historikkolonnerne, hvorefter tabellen kan indlæses
+
+** DC_STAFF_IDENTIFIER
+
+Staffidentifiertabellen indeholder oplysninger om medarbejderens cprnummer, autorisationskode mm. Der er dermed en 1-til-mange relation mellem STAFF og STAFF_IDENTIFIER.
+Identifieroplysningerne hentes fra spider3.ResourceServiceExternal, der joines med spider3.ResourceServiceResource på vanlig vis.
+
+** D_USER
+
+Usertabellen indeholder oplysninger om brugerens oprettelse og status. Data hentes udelukkende fra spider3.UserServiceUser. Derudover er der en 1-til-1 relation til STAFF tabellen.
+_hist-tabellen beriges med historikkolonnerne, hvorefter tabellen kan indlæses
+
+
+** D_USER_ROLE
+
+Brugerrollerne hentes fra spider3.UserServiceRole. I denne tabel er der ikke noget latest-begreb, og dermed ikke historikspor. XYZ tjeck antal i UserServiceRole.
+
+
+** D_GROUP
+
+Patientgrupperne hentes udelukkende fra spider3.SubjectOfCareServiceGroup.
+_hist-tabellen beriges med historikkolonnerne, hvorefter tabellen kan indlæses
+
+
+
+
+** Forløb, henvisninger og kontakter
+
+I "Udkast CI tabeller til udvidelse" er anført historikbehov for henvisninger, men det er ikke angivet for forløb og kontakter
+
+Data findes overvejende i de 3 tabeller: ActivityServiceActivity (ASA), ActivityServiceExternal (ASE) og ActivityServiceHierarchical (ASH).
+
+Relationerne mellem forløb, henvisning og kontakter i CI er som følger
+
+
+                          +-------------------------------+
+                          |                               |
+                          |   F_COMMITMENT                |
+                          |                               |
+                          +-------------------------------+
+                                      ^                 ^
+            +-------+                 |                 |
+            |       V                 |                 |
+            |   +----------------------------+     +-------------+
+            |   |                            |     |             |
+            +-- |      F_CONTACT             |---->|  F_REFFERAL |
+                |                            |     |             |
+                +----------------------------+     +-------------+
+
+
+
+*** Forløb
+
+F_Commitment indeholder forløb med oplysninger om fra- og tildato henvisning til patient, enheder og medarbejdere (Performing og Responsible Unit/Staff) samt nogle statusmarkeringer, klassifikation mm.
+
+Alt data hentes fra ASA, ASE og ASH incl. id-værdier for enheder og medarbejdere.
+
+Ud over evt. ændringer til enheder og medarbejdere, vil forløbene historisk gennemløbe statusskift inden de oftest ender med status 164, se.cambiosys.spider.HealthCareModel.HCM_Closed.
+
+Da der ikke er angivet ønske om historik på denne tabel, sker der ikke oprettelse af en historisk tabel i CI+ databasen.
+
+
+*** Henvisninger
+
+F_Referral indeholder henvisninger. Ligesom ved de øvrige tabeller, hentes data fra Spider-databasen fra ASA, ASE og ASH.
+Derudover ligger henvisnininger i DatumServiceDatum gemt i xml-format som følger
+
+<ClinicalInformation><Type>2</Type>
+<SubType>0</SubType>
+<Collection><PlannedTime>2017-10-20 16:06:40</PlannedTime>
+<StartTime>2017-10-20 16:06:40</StartTime>
+<EndTime>2017-10-20 16:06:40</EndTime>
+<Unit/>
+<IsDummyDate>0</IsDummyDate>
+</Collection>
+<CollectionType><Type><ID>1</ID>
+<Description>Egen afdeling</Description>
+</Type>
+</CollectionType>
+<Side>0</Side>
+</ClinicalInformation>
+
+Som ved commitment er der referencer til patient, enheder og medarbejdere (Performing og Responsible Unit/Staff) og RoS. Der er også en id-reference til commitment.
+Der er samme statusmarkeringer, type 164 ("se.cambiosys.spider.HealthCareModel.HCM_Closed") og 160 ("se.cambiosys.spider.HealthCareModel.HCM_Cancelled"), og undervejs har tilstandende gennemløbet "se.cambiosys.spider.HealthCareModel.HCM_Planned" mm.
+
+Der tilføjes fra- og tildato, således at historiske statusskift og ændringer fastholdes.
+
+
+
+
+*** Kontakter
+
+F_Contact tabellen er omfattende med 68 kolonner og mange join med ASE og Attribute-tabellerne. I AttributeServiceValue gemmes en række oplysninger, blandt andet om akut-værdi, planlagt, diskretion mm.
+
+Der er ikke angivet behov for historik omkring kontakter,
+
+Særligt omkring CAVE
+F_WARNING og FC_WARNING_ATTRIBUTE
+
+
+
+** F_PRESCRIPTION
+** F_MEDICATION
+** F_MEDICATION_ADMIN
+** FC_MEDICATION_ADMIN
+** FC_MEDICATION_DOSAGE
+** D_DRUG
+** D_ATC
+
+
+Osodu81829
+** Medicin
+
+Der er angivet historikbehov for følgende tabeller. Sammenhængen er illustreret nedenfor.
+
+
+
+             +------------------===-+    +-----------------------------+          +----------------------------+
+             |                      |    |                             |          |                            |
+             | FC_MEDICATION_DOSAGE |--> |  F_MEDICATION               |<---------| F_MEDICATION_ADMIN         |
+             |                      |    |                             |          |                            |
+             +----------------------+    +-----------------------------+          +----------------------------+
+                                           ^              |                               ^
+                                           |              V                               |
+                     +=================+   |          +------------+                 +----------------------------+
+                     |                 |   |          |            |                 |                            |
+                     |  F_PRESCRIPTION |---+          |  D_DRUG    |<----------------| FC_MEDICATION_ADMIN        |
+                     |                 |              |            |                 |                            |
+                     +=================+              +------------+                 +----------------------------+
+                                                            |
+                                                            V
+                                                      +============+
+                                                      |            |
+                                                      | D_ATC      |
+                                                      |            |
+                                                      +============+
+*** Lægemiddelstofklassifikation,  ATC
+Data om atc-klassifikationer til tabellen D_ATC hentes fra spider3.ConceptServiceConcept og -ConceptServiceTerm og fra spider3.ResourceServiceResource (lokale koder).
+
+I D_ATC er der reference til hierarkiske atc værdier, men ikke ydeligere referencer
+
+Der tilføjes historikkolonner.
+
+*** Lægemiddel, D_DRUG
+Tabellen D_DRUG hentes fra spider3.ResourceServiceResource samt spider3.AttributeService.
+I tabellen gemmes oplysning om beskrivelse, styrke mm.
+
+Drugtabellen har en reference til ATC-værdi og en eksterns product_id, men ingen ydeligere referencer til øvrige tabeller i CI.
+
+Der tilføjes historikkolonner.
+
+*** Medicinering, F_MEDICATION
+
+Tabellen D_MEDICATION udfyldes primært med data fra spider3.ASA og ASE og fra spider3.DSD og DSE. Datum-tabellerne indeholder oplysninger om MedicationDatum.
+
+Der er oplysninger om status, indikation, formål mm.
+
+Der tilføjes historikkolonner.
+
+**** Referencer
+- Patient (ID)
+- Contact (ID)
+- Drug (ID),
+- Creating og Responsible Unit (ID)
+- Creating og Responsible Staff (ID)
+- Signer (ID)
+
+
+*** Ordination, F_PRESCRIPTION
+
+Ordinationsoplysningerne i F_MEDICATION udfyldes ligeledes med oplysninger fra spider3.ASA, ASE og DSD tabeller.
+
+Den indeholder oplysning om iteration, interval, fee mm
+
+Der tilføjes historikkolonner.
+
+**** Referencer
+- Patient (ID)
+- Contact (ID)
+- Medication (ID),
+- Creating og Responsible Unit (ID)
+- Creating Staff (ID)
+- Signer (ID)
+- ePrescription (ID)
+
+*** Dosis, FC_MEDICATION_DOSAGE
+
+F_MEDICATION_DOSAGE indeholder oplysninger dosisdelen af F_MEDICATION. Data parses ud fra en xml-struktur hentet fra DatumServiceDatum eller BulkServiceBulk. Det er ikke trivielt at normalisere data ud i dosistabellen.
+
+Dosisoplysningerne er volument, iteration, duration, maxdosage mm
+
+Der tilføjes historikkolonner.
+
+**** Referencer
+- Medication (ID)
+
+
+*** Administrering, F_MEDICATION_ADMIN
+F_MEDICATION_ADMIN indholder oplysninger om administrering af medicin, bl.a. om dose.
+Data hentes fra ASA og ASE tabeller. Detailoplysninger om dosis parses fra XML-struktur.
+
+Der tilføjes historikkolonner.
+
+**** Referencer
+- Patient (ID)
+- Medication (ID)
+- Creating Unit (ID)
+
+
+*** Administreringshændelse, FC_MEDICATION_ADMIN
+I FC_MEDICATION_ADMIN er der oplysninger om den enkelte administration af medicin. Data hentes fra spider3.DSD tabellerne. Prescription-oplysninger hentes fra xml-struktur i DSD
+
+Der tilføjes historikkolonner.
+
+**** Referencer
+- Patient (ID)
+- MedicationAdmin (ID),
+- Unit (ID)
+- Staff (ID)
+- Signer (ID)

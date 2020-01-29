@@ -1,14 +1,32 @@
-* Koncept
+* CA
 
-Det generelle koncept for at berige CI databasen med historiske tabeller er en en-til-en udvidelse af den enkelte tabel med en _hist version. F.x. at der oprettes en F_JOURNALNOTE_hist tabel, F_JOURNALTABLE_hist tabel osv.
+Det generelle koncept for CA-databasen er en en-til-en udvidelse af den enkelte tabel i CI med en ca-skema version. F.x. at der oprettes en ca.F_JOURNALNOTE tabel, en ca.F_JOURNALTABLE tabel osv.
 
-_hist tabellen udvider modertabellen med en fra- og tildato, og evt. en primaryKey. Referencen til modertabellen sker gennem id-kolonnen, svarende til versioneringen i Spider-databasen.
+ca-tabellen udvider modertabellen med en fra- og tildato, og en primaryKey. Fradato er dato for oprettelsestidspunkt (= createddate) og tildatoen er lig fradato for den næste version af rækken.
+Referencen til ci-tabellen sker gennem id-kolonnen, som i Spider-databasen.
+For hver række i ci-tabellen vil der være 1 til flere rækker i ca-tabellen incl. aktuelle række fra ci-tabellen, der også indgår i ca-tabellen.
 
-Kriteriet for at indsætte række i _hist-tabellen, er at den konkrete række er forskellig fra andre rækker med samme id i _hist-tabellen, og forskellig fra rækken i modertabellen. Dvs. det er en mere kompakt versionskoncept end Spiders, hvor hele strukturen kopieres i tilfælde af ændring.
+En søgning efter data for en bestemt id-række i F_CONTACT på en bestemt dato f.x. 20. juni 2019 ville se ud som
 
-De enkelte kolonner i tabellen er enten værdi kolonner eller id-kolonner. Id-kolonner er id-referencer til andre tabeller, f.x. Staff. Såfremt Id ikke ændres er der ikke grund til at indsætte en ny række i _hist-tabellen. Historik på den referede tabel, håndteres på denne. Dvs <Staff>_hist.
+#+BEGIN_EXAMPLE
+SELECT * FROM ca.F_CONTACT
+WHERE
+  ca.fradato <= '2019-06-20' AND
+ (ca.tildato >= '2019-06-20' OR ca.tildato IS NULL)
+#+END_EXAMPLE
 
-Arkiveringsjobbet skal behandle de enkelte CI-tabeller, der ønskes beriget med historik, og lave et tilsvarende udtræk mhp. at afklare om der er en betydende forskel.
+Såfremt data hentes fra flere ca-tabeller, skal metoden ovenfor tilsvarende anvendes på de øvrige tabeller.
+
+Kriteriet for at indsætte række i ca-tabellen, er at den konkrete række er forskellig fra andre rækker med samme id i ca-tabellen. Dvs. det er en mere kompakt versionskoncept end Spiders, hvor hele strukturen kopieres i tilfælde af ændring.
+
+De enkelte kolonner i tabellen er enten værdi kolonner eller id-kolonner. Id-kolonner er id-referencer til andre tabeller, f.x. Staff. Såfremt Id ikke ændres er der ikke grund til at indsætte en ny række i ca-tabellen. Historik på den refererede tabel håndteres på denne. Altså ca.Staff
+
+Arkiveringsjobbet skal behandle de enkelte CI-tabeller der ønskes beriget med historik, og lave et tilsvarende udtræk mhp. at afklare om der er en betydende forskel.
+
+** ID-kolonner og fremmednøgler
+Modsat Spider3.databasen er der udbredt brug af fremmednøgler i CI-databasen. F.x. F_CONTACT-tabellen, der refererer til commitment, unit, term, staff mm. Hver af fremmednøglerelationerne er understøttet af et dedikeret index. Fremmednøglerelationerne sikrer sammenhæng (konsistens i data). Databaseindex begunstiger søgninger, men øger pladsbehov og tidsforbrug ved indsæt af rækker. CA databasen oprettes uden fremmednøglerelationer for at begunstige indsæt af data. Såfremt der er nogle af id-rækkerne i CA-tabellen, der refererer til ikke-eksisterende id'er i anden tabel, betragtes det ikke som en blokerende fejl. Det kan skyldes inkonsistens i Spider-databasen eller evt. manglende historik for denne entitet i CA-databasen, måske fordi der endnu ikke er dannet historik for tabellen.
+
+Når CA-databasen er fuldt udfyldt vil det efterfølgende være muligt at danne de sql-index, der er ønskelig til brug for læsning. Evt. med inspiration fra indeks i CI-databasen.
 
 
 * Journal
@@ -220,7 +238,7 @@ Kriteriet for indsættelse er at value-feltet i DSD ændres.
 ** D_STAFF
 
 Stafftabellen indeholder oplysninger om medarbejderens rolle og underrolle (profession og subprofession). Brugerdata hentes fra spider3.UserServiceUser og rollerne fra spider3.ResourceServiceResource. Derudover er der en 1-til-1 relation til USER tabellen.
-_hist-tabellen beriges med historikkolonnerne, hvorefter tabellen kan indlæses
+ca--tabellen beriges med historikkolonnerne, hvorefter tabellen kan indlæses
 
 ** DC_STAFF_IDENTIFIER
 
@@ -230,7 +248,7 @@ Identifieroplysningerne hentes fra spider3.ResourceServiceExternal, der joines m
 ** D_USER
 
 Usertabellen indeholder oplysninger om brugerens oprettelse og status. Data hentes udelukkende fra spider3.UserServiceUser. Derudover er der en 1-til-1 relation til STAFF tabellen.
-_hist-tabellen beriges med historikkolonnerne, hvorefter tabellen kan indlæses
+ca--tabellen beriges med historikkolonnerne, hvorefter tabellen kan indlæses
 
 
 ** D_USER_ROLE
@@ -241,7 +259,7 @@ Brugerrollerne hentes fra spider3.UserServiceRole. I denne tabel er der ikke nog
 ** D_GROUP
 
 Patientgrupperne hentes udelukkende fra spider3.SubjectOfCareServiceGroup.
-_hist-tabellen beriges med historikkolonnerne, hvorefter tabellen kan indlæses
+ca--tabellen beriges med historikkolonnerne, hvorefter tabellen kan indlæses
 
 
 

@@ -509,3 +509,69 @@ Der tilføjes historikkolonner.
 - Unit (ID)
 - Staff (ID)
 - Signer (ID)
+
+
+* Bulkdata
+
+I Spider3 databasen anvendes BulkServiceBulk-tabellen til fælles opbevaring af binær data. Fremgangsmåden er at xml-strukturer, Officedokumenter, billeder, lydfiler (tidligere) mm. bliver gemt i binære format i kolonnen bulkData, der er af sql-typen 'image'. Imagetypen erstattes fremover af Varbinary(max). Bulkservicebulktabellen er større end 1Tb incl indeks.
+
+Bulkservicebulk har en type-værdi, der angiver formatet af bulkData, og en id-værdi, der fungerer som reference til de øvrige tabeller.
+F.x se.cambiosys.spider.MedModule.Med_DosageXml typen, der indeholder dosis-oplysninger til FC_MEDICATION_DOSAGE. I dette tilfælde referer BulkServiceBulk.id til DSD.value
+
+Der oprettes en CA.Bulk tabel, der svarer til Spider3.BulkServiceBulk tabellen. Der opsættes en selvstændigt sql-job, der kopierer rækker fra Spider3.BulkServiceBulk til CA.Bulk ud de ønskede bulktyper.
+Dvs. bulktyper som Med_DosageXml ovenfor er ikke relevante, da de på anden måde indgår i CA. Dictation er heller ikke relevante.
+Derimod er JournalWordDocument, JournalDocument m.fl. relevante.
+De præcise bulktyper der ønskes medtaget fastlægges under udviklingen af scriptet.
+Id-kolonnen indgår i CA.Bulk, så det er muligt at navigere gennem denne.
+
+** Oversigt over bulktyper
+- se.cambiosys.client.framework.menueditor.BulkType
+- se.cambiosys.client.framework.patients.photo.BulkType
+- se.cambiosys.client.framework.phrase.BulkType
+- se.cambiosys.client.framework.publicholiday.BulkType
+- se.cambiosys.client.framework.relatives.BulkType
+- se.cambiosys.client.framework.report.BulkType
+- se.cambiosys.client.framework.SaveWindowsLayout.BulkType
+- se.cambiosys.client.framework.subjectofcare.BulkType
+- se.cambiosys.client.framework.version.ClientVersionsBulkType
+- se.cambiosys.client.growthchart.pluginConfigurations
+- se.cambiosys.client.overviewmodule.OVM_StartPageConfigs
+- se.cambiosys.spider.AgreementModule.CA_Product_Class_Availability
+- se.cambiosys.spider.AgreementModule.CA_Product_Class_Markup
+- se.cambiosys.spider.BirthModule.JournalView
+- se.cambiosys.spider.CareAdministrationModule.CA_ProductRulesBulkType
+- se.cambiosys.spider.CareAdministrationModule.CA_RequestRuleBulkType
+- se.cambiosys.spider.CareAdministrationModule.CA_RequestRuleConfigBulkType
+- se.cambiosys.spider.CareAdministrationModule.TransactionRefBulk
+- se.cambiosys.spider.CareAdministrationModule.valuables.BulkType
+- se.cambiosys.spider.ClinicalCoding.CC_ModuleCodeTree
+- se.cambiosys.spider.DictationModule.DictationCategory.BulkDictation
+- se.cambiosys.spider.DictationModule.DictationCategory.BulkLetter
+- se.cambiosys.spider.HealthCareModel.HCM_ReferralCodesBulk
+- se.cambiosys.spider.JournalModule.CareReasonSetting
+- se.cambiosys.spider.JournalModule.CD_XMLTree
+- se.cambiosys.spider.JournalModule.DefaultValuesForTreatmentPlan
+- se.cambiosys.spider.JournalModule.JournalDocument
+- se.cambiosys.spider.JournalModule.JournalFilter
+- se.cambiosys.spider.JournalModule.JournalFormTree
+- se.cambiosys.spider.JournalModule.JournalValueDataType
+- se.cambiosys.spider.JournalModule.JournalView
+- se.cambiosys.spider.JournalModule.JournalWordDocument
+- se.cambiosys.spider.MedModule.Med_DosageXml
+- se.cambiosys.spider.MedModule.Med_Unit_Template
+- se.cambiosys.spider.MedSchemeModule.Med_General_Directive
+- se.cambiosys.spider.MedSchemeModule.Med_Time_Setting
+- se.cambiosys.spider.OfferService.Offer_Scheme_Type
+- se.cambiosys.spider.OfferService.OfferSet_Scheme_Model_Type
+- se.cambiosys.spider.OfferService.Resource_Scheme_Type
+- se.cambiosys.spider.OrderManagementModule.OM_ClinicalInformation_Bulk
+- se.cambiosys.spider.OrderManagementModule.OM_CommentBulk
+- se.cambiosys.spider.OrderManagementModule.OM_ResultBulk
+- se.cambiosys.spider.OrderProductModule.OrderProductCodesBulk
+- se.cambiosys.spider.PDFFormModule.FDF
+- se.cambiosys.spider.PDFFormModule.PDF
+- se.cambiosys.spider.PlanActionModule.RP_Care_Information
+- se.cambiosys.spider.PlanActionModule.RP_CodeTreeBulk
+- se.cambiosys.spider.PlanActionModule.RP_FreeText_Bulk
+- se.cambiosys.spider.PsychiatricModule.JournalView
+- se.cambiosys.spider.ScheduleModule.ScheduleCalendarSettingType

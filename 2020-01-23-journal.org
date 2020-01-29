@@ -329,39 +329,45 @@ F_WARNING og FC_WARNING_ATTRIBUTE
 
 
 Osodu81829
-** Medicin
+* Medicin
 
 Der er angivet historikbehov for følgende tabeller. Sammenhængen er illustreret nedenfor.
 
+#+BEGIN_EXAMPLE
 
-
-             +------------------===-+    +-----------------------------+          +----------------------------+
+             +----------------------+    +-----------------------------+          +----------------------------+
              |                      |    |                             |          |                            |
              | FC_MEDICATION_DOSAGE |--> |  F_MEDICATION               |<---------| F_MEDICATION_ADMIN         |
              |                      |    |                             |          |                            |
              +----------------------+    +-----------------------------+          +----------------------------+
                                            ^              |                               ^
                                            |              V                               |
-                     +=================+   |          +------------+                 +----------------------------+
+                     +-----------------+   |          +------------+                 +----------------------------+
                      |                 |   |          |            |                 |                            |
                      |  F_PRESCRIPTION |---+          |  D_DRUG    |<----------------| FC_MEDICATION_ADMIN        |
                      |                 |              |            |                 |                            |
-                     +=================+              +------------+                 +----------------------------+
+                     +-----------------+              +------------+                 +----------------------------+
                                                             |
                                                             V
-                                                      +============+
+                                                      +------------+
                                                       |            |
                                                       | D_ATC      |
                                                       |            |
-                                                      +============+
-*** Lægemiddelstofklassifikation,  ATC
+                                                      +------------+
+
+#+END_EXAMPLE
+
+
+
+** Lægemiddelstofklassifikation,  ATC
 Data om atc-klassifikationer til tabellen D_ATC hentes fra spider3.ConceptServiceConcept og -ConceptServiceTerm og fra spider3.ResourceServiceResource (lokale koder).
 
 I D_ATC er der reference til hierarkiske atc værdier, men ikke ydeligere referencer
 
 Der tilføjes historikkolonner.
 
-*** Lægemiddel, D_DRUG
+
+** Lægemiddel, D_DRUG
 Tabellen D_DRUG hentes fra spider3.ResourceServiceResource samt spider3.AttributeService.
 I tabellen gemmes oplysning om beskrivelse, styrke mm.
 
@@ -369,7 +375,7 @@ Drugtabellen har en reference til ATC-værdi og en eksterns product_id, men inge
 
 Der tilføjes historikkolonner.
 
-*** Medicinering, F_MEDICATION
+** Medicinering, F_MEDICATION
 
 Tabellen D_MEDICATION udfyldes primært med data fra spider3.ASA og ASE og fra spider3.DSD og DSE. Datum-tabellerne indeholder oplysninger om MedicationDatum.
 
@@ -377,7 +383,7 @@ Der er oplysninger om status, indikation, formål mm.
 
 Der tilføjes historikkolonner.
 
-**** Referencer
+*** Referencer
 - Patient (ID)
 - Contact (ID)
 - Drug (ID),
@@ -386,7 +392,7 @@ Der tilføjes historikkolonner.
 - Signer (ID)
 
 
-*** Ordination, F_PRESCRIPTION
+** Ordination, F_PRESCRIPTION
 
 Ordinationsoplysningerne i F_MEDICATION udfyldes ligeledes med oplysninger fra spider3.ASA, ASE og DSD tabeller.
 
@@ -394,7 +400,7 @@ Den indeholder oplysning om iteration, interval, fee mm
 
 Der tilføjes historikkolonner.
 
-**** Referencer
+*** Referencer
 - Patient (ID)
 - Contact (ID)
 - Medication (ID),
@@ -403,7 +409,7 @@ Der tilføjes historikkolonner.
 - Signer (ID)
 - ePrescription (ID)
 
-*** Dosis, FC_MEDICATION_DOSAGE
+** Dosis, FC_MEDICATION_DOSAGE
 
 F_MEDICATION_DOSAGE indeholder oplysninger dosisdelen af F_MEDICATION. Data parses ud fra en xml-struktur hentet fra DatumServiceDatum eller BulkServiceBulk. Det er ikke trivielt at normalisere data ud i dosistabellen.
 
@@ -411,28 +417,28 @@ Dosisoplysningerne er volument, iteration, duration, maxdosage mm
 
 Der tilføjes historikkolonner.
 
-**** Referencer
+*** Referencer
 - Medication (ID)
 
 
-*** Administrering, F_MEDICATION_ADMIN
+** Administrering, F_MEDICATION_ADMIN
 F_MEDICATION_ADMIN indholder oplysninger om administrering af medicin, bl.a. om dose.
 Data hentes fra ASA og ASE tabeller. Detailoplysninger om dosis parses fra XML-struktur.
 
 Der tilføjes historikkolonner.
 
-**** Referencer
+*** Referencer
 - Patient (ID)
 - Medication (ID)
 - Creating Unit (ID)
 
 
-*** Administreringshændelse, FC_MEDICATION_ADMIN
+** Administreringshændelse, FC_MEDICATION_ADMIN
 I FC_MEDICATION_ADMIN er der oplysninger om den enkelte administration af medicin. Data hentes fra spider3.DSD tabellerne. Prescription-oplysninger hentes fra xml-struktur i DSD
 
 Der tilføjes historikkolonner.
 
-**** Referencer
+*** Referencer
 - Patient (ID)
 - MedicationAdmin (ID),
 - Unit (ID)

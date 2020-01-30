@@ -287,11 +287,7 @@ Tabellen referer til FC_JOURNALVALUE tabellen.
 Tabellen beriges med til- og fradato.
 Kriteriet for indsættelse er at value-feltet i DSD ændres.
 
-
-
-
-
-
+#+BEGIN_EXAMPLE
 
                        +-------------------------------+      +----------+
                        |                               |      |          |
@@ -314,6 +310,8 @@ Kriteriet for indsættelse er at value-feltet i DSD ændres.
                        |      F_JOURNALVALUE_TEXT      |
                        |                               |
                        +-------------------------------+
+
+#+END_EXAMPLE
 
 
 ** Cave

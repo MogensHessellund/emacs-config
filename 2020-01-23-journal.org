@@ -1,12 +1,12 @@
 * CA
 
-Det generelle koncept for CA-databasen er en en-til-en udvidelse af den enkelte tabel i CI med en ca-skema version. F.x. at der oprettes en ca.F_JOURNALNOTE tabel, en ca.F_JOURNALTABLE tabel osv.
+Det generelle koncept for CA-databasen er en en-til-en udvidelse af den enkelte tabel i CI med en CA-skema version. F.x. at der oprettes en ca.F_JOURNALNOTE tabel, en ca.F_JOURNALTABLE tabel osv.
 
-ca-tabellen udvider modertabellen med en fra- og tildato, og en primaryKey. Fradato er dato for oprettelsestidspunkt (= createddate) og tildatoen er lig fradato for den næste version af rækken.
+CA-tabellen udvider modertabellen med en fra- og tildato, og en primaryKey og versionsnummer. Fradato er dato for oprettelsestidspunkt (= createddate) og tildatoen er lig fradato for den næste version af rækken (versionsnummer+1).
 Referencen til ci-tabellen sker gennem id-kolonnen, som i Spider-databasen.
-For hver række i ci-tabellen vil der være 1 til flere rækker i ca-tabellen incl. aktuelle række fra ci-tabellen, der også indgår i ca-tabellen.
+For hver række i ci-tabellen vil der være 1 til flere rækker i CA-tabellen incl. aktuelle række fra ci-tabellen, der også indgår i CA-tabellen.
 
-En søgning efter data for en bestemt id-række i F_CONTACT på en bestemt dato f.x. 20. juni 2019 ville se ud som
+En søgning efter data for en bestemt id-række i ca.F_CONTACT på en bestemt dato f.x. 20. juni 2019 ville se ud som
 
 #+BEGIN_EXAMPLE
 SELECT * FROM ca.F_CONTACT
@@ -15,27 +15,29 @@ WHERE
  (ca.tildato >= '2019-06-20' OR ca.tildato IS NULL)
 #+END_EXAMPLE
 
-Såfremt data hentes fra flere ca-tabeller, skal metoden ovenfor tilsvarende anvendes på de øvrige tabeller.
+Såfremt data hentes fra flere CA-tabeller, skal metoden ovenfor tilsvarende anvendes på de øvrige tabeller.
 
-Kriteriet for at indsætte række i ca-tabellen, er at den konkrete række er forskellig fra andre rækker med samme id i ca-tabellen. Dvs. det er en mere kompakt versionskoncept end Spiders, hvor hele strukturen kopieres i tilfælde af ændring.
+Kriteriet for at indsætte række i CA-tabellen, er at den konkrete række er forskellig fra andre rækker med samme id i CA-tabellen. Dvs. det er en mere kompakt versionskoncept end Spiders, hvor hele strukturen kopieres i tilfælde af ændring.
 
-De enkelte kolonner i tabellen er enten værdi kolonner eller id-kolonner. Id-kolonner er id-referencer til andre tabeller, f.x. Staff. Såfremt Id ikke ændres er der ikke grund til at indsætte en ny række i ca-tabellen. Historik på den refererede tabel håndteres på denne. Altså ca.Staff
-
-Arkiveringsjobbet skal behandle de enkelte CI-tabeller der ønskes beriget med historik, og lave et tilsvarende udtræk mhp. at afklare om der er en betydende forskel.
+De enkelte kolonner i tabellen er enten værdi kolonner eller id-kolonner. Id-kolonner er id-referencer til andre tabeller, f.x. Staff. Såfremt Id ikke ændres er der ikke grund til at indsætte en ny række i CA-tabellen. Historik på den refererede tabel håndteres på denne. Altså ca.Staff
 
 ** ID-kolonner og fremmednøgler
-Modsat Spider3.databasen er der udbredt brug af fremmednøgler i CI-databasen. F.x. F_CONTACT-tabellen, der refererer til commitment, unit, term, staff mm. Hver af fremmednøglerelationerne er understøttet af et dedikeret index. Fremmednøglerelationerne sikrer sammenhæng (konsistens i data). Databaseindex begunstiger søgninger, men øger pladsbehov og tidsforbrug ved indsæt af rækker. CA databasen oprettes uden fremmednøglerelationer for at begunstige indsæt af data. Såfremt der er nogle af id-rækkerne i CA-tabellen, der refererer til ikke-eksisterende id'er i anden tabel, betragtes det ikke som en blokerende fejl. Det kan skyldes inkonsistens i Spider-databasen eller evt. manglende historik for denne entitet i CA-databasen, måske fordi der endnu ikke er dannet historik for tabellen.
+Modsat Spider3.databasen er der udbredt brug af fremmednøgler i CI-databasen. F.x. F_CONTACT-tabellen, der refererer til commitment, unit, term, staff mm. Hver af fremmednøglerelationerne er understøttet af et dedikeret index. Fremmednøglerelationerne sikrer sammenhæng (konsistens i data). Databaseindex begunstiger søgninger, men øger pladsbehov og tidsforbrug ved indsæt af rækker.
+
+CA databasen oprettes uden fremmednøglerelationer for at begunstige indsæt af data. Såfremt nogle af id-rækkerne i CA-tabellen refererer til ikke-eksisterende id'er i anden tabel, betragtes det ikke som en blokerende fejl. Det kan skyldes inkonsistens i Spider-databasen eller evt. manglende historik for denne entitet i CA-databasen, måske fordi der endnu ikke er dannet historik for tabellen.
 
 Når CA-databasen er fuldt udfyldt vil det efterfølgende være muligt at danne de sql-index, der er ønskelig til brug for læsning. Evt. med inspiration fra indeks i CI-databasen.
 
 
-* Journal
+* PAS
 
-I Spiderdatabasen er journaloplysningerne er primært gemt i Datum-tabellerne, DatumServiceDatum (DSD), DatumServiceExternal (DSE) og DatumServiceHierarchical (DSH). Derudover er der RoS svar i TNG-tabeller og skabeloner i JournalForm tabeller og signeringsoplysninger i Bulk-tabellerne.
+I Spiderdatabasen er PAS journaloplysningerne primært gemt i Datum-tabellerne: DatumServiceDatum (DSD), DatumServiceExternal (DSE) og DatumServiceHierarchical (DSH). Derudover er der RoS svar i TNG-tabeller og skabeloner i JournalForm tabeller og signeringsoplysninger i Bulk-tabellerne.
 
 TNG- og Bulk-tabellerne indeholder prøvesvar mm i xml-format, der parses i CI's stored procedure så de kan normaliseres ud i kolonner. Det er derfor også nødvendigt for arkiveringsprojektet at lave en tilsvarende parsning, såfremt der er sket en ændring i TNG-referencen.
 
-** JOURNALNOTE Journalnotater
+** Journalnotater
+
+#+BEGIN_EXAMPLE
 
                        +-------------------------------+
                        |                               |
@@ -50,10 +52,12 @@ TNG- og Bulk-tabellerne indeholder prøvesvar mm i xml-format, der parses i CI's
                        |      FE_JOURNALNOTE_ADMINISTRATION |
                        |                                    |
                        +------------------------------------+
+#+END_EXAMPLE
+
 
 *** F_JOURNALNOTE
 
-F_JOURNALNOTE indeholder rækker af typen se.cambiosys.spider.JournalModule.JournalNote med udgangspunkt i DSD og DSE
+F_JOURNALNOTE indeholder rækker af typen se.cambiosys.spider.JournalModule.JournalNote med udgangspunkt i spider3.DSD og DSE
 F_JOURNALNOTE er den overordnede række for journalnotatet.
 
 Tabellen indeholder type, subtype, status og en række id-referencer til Commitment, CareProvider mm
@@ -62,15 +66,45 @@ Tabellen indeholder allerede PrimaryKey.
 
 Historiske id-rækker sammenligner med tidligere version og i tilfælde af ændring, f.x. Status eller CareProvider indsættes ny række
 
+**** Referencer
+- CareProvider_ID (D_STAFF)
+- CareProviderProfession_ID (D_PROFESSION)
+- Commitment_ID
+- Contact_ID
+- Form_Key (DV_FORM)
+- Group_ID (D_GROUP)
+- JournalForm_ID (D_JOURNALFORM)
+- MeasureNote_ID (F_JOURNALNOTE)
+- NoteType (DV_TERM)
+- ObservationNote_ID (F_JOURNALNOTE)
+- Patient_ID
+- Status (D_JOURNAL_STATUS)
+- Type (D_TYPE)
+- Unit_ID
+
 
 *** FE_JOURNALNOTE_ADMINISTRATION
 
-Som F_JOURNALNOTE med mere specialiseret med signering
+Som F_JOURNALNOTE specialiseret med signering
+
+**** Referencer
+- Attester_ID (D_STAFF)
+- Author_ID (D_STAFF)
+- CareProvider_ID (D_STAFF)
+- CareProviderProfession_ID (D_PROFESSION)
+- CounterSigner_ID (D_STAFF)
+- Dictate_ID
+- JournalDictate_ID
+- JournalNote_ID
+- Secretary_ID (D_STAFF)
+- Signer_ID (D_STAFF)
+- Status (D_JOURNAL_STATUS)
+- Unit_ID
 
 
-** JOURNALTABLE Prøvesvar
+** Prøvesvar
 
-
+#+BEGIN_EXAMPLE
                        +-------------------------------+
                        |                               |
                        |      F_JOURNALTABLE           |
@@ -92,36 +126,56 @@ Som F_JOURNALNOTE med mere specialiseret med signering
                        |      FC_JOURNALTABLE_VALUE    |
                        |                               |
                        +-------------------------------+
+#+END_EXAMPLE
+
 
 *** F_JOURNALTABLE
 F_JOURNALTABLE indeholder referencer til skabeloner og RoS prøvesvar fra Spider, med reference til spider3.TNGModuleTNG der indeholder xml gemt i binært format. Dvs. der sker en parsning af XML-strukturen.
+
+**** Referencer
+- JournalTableForm_Key (DV_JOURNALTABLE_FORM)
+- Patient_ID
 
 
 *** FC_JOURNALTABLE_COLUMN
 F_JOURNALTABLE_COLUMN har en en-til-mange relation til F_JOURNAL. Den består af JournalRecords gemt i DSD.
 
+**** Referencer
+- Contact_ID
+- JournalNote_ID
+- Unit_ID
 
 *** FC_JOURNALTABLE_VALUE
 FC_JOURNALTABLE_VALUE har en reference til JOURNALTABLE_COLUMN og dermed til JOURNALTABLE,
 Den indeholder oplysninger om de enkelte prøvesvar med referencer til JOURNALVALUE gemt som JournalRecords.
 F.x Puls	30
 
+**** Referencer
+- Analysis_ID (D_ANALYSIS)
+- ChemistryResult_ID (FC_CHEMISTRY_RESULT)
+- JournalTable_ID (F_JOURNALTABLE)
+- JournalTableColumn_ID (FC_JOURNALTABLE_COLUMN)
+- Keyword_ID (D_KEYWORD)
 
-** JOURNALFORM
 
+** Journalform
+
+#+BEGIN_EXAMPLE
                        +-------------------------------+
                        |                               |
                        |      D_JOURNALFORM            |
                        |                               |
                        +-------------------------------+
                                       ^
-                                      |
-                                      |
-                       +-------------------------------+
+                                      |             +-----+
+                                      |             |     |
+                                      |             V     |
+                       +-------------------------------+  |
+                       |                               |  |
+                       |      DC_JOURNALFORM           |--+
                        |                               |
-                       |      DC_JOURNALFORM           |
-                       |                               |
                        +-------------------------------+
+#+END_EXAMPLE
 
 
 *** D_JOURNALFORM
@@ -129,25 +183,36 @@ F.x Puls	30
 F.x sårjournal.
 Indeholder referencer til notater fra spider.JournalModuleJournalForm
 
+Den indeholder ikke fremmednøglereferencer til øvrige ci-tabeller
+
 
 *** DC_JOURNALFORM
 
-Hierrarki af journalforme
+Hierarki af journalforme. Som det ses i diagrammet er der en parent-child struktur
+
+**** Referencer
+- JournalForm_ID (D_JOURNALFORM)
+- Keyword_ID (D_KEYWORD)
+- ParentJournalFormKeyword_ID (DC_JOURNALFORM)
+- ParentKeyword_ID (D_KEYWORD)
 
 
-** JOURNALVALUE
+** Journalværdier
 
-                       +-------------------------------+      +----------+
-                       |                               |      |          |
-                       |      F_JOURNALNOTE            |  --> |  Patient |
-                       |                               |      |          |
-                       +-------------------------------+      +----------+
+#+BEGIN_EXAMPLE
+
+                       +-------------------------------+      + - - - - - +
+                       |                               |
+                       |      F_JOURNALNOTE            |  --> |  Patient  |
+                       |                               |
+                       +-------------------------------+      + - - - - - +
                                       ^
-                                      |
-                                      |
-                       +-------------------------------+      +----------------------+
-                       |                               |      |                      |
-                       |      F_JOURNALVALUE           | <--  | FC_JOURNALVALUE_CODE |
+                 +--------+           |
+                 |        |           |
+                 |        V           |
+                 |     +-------------------------------+      +----------------------+
+                 |     |                               |      |                      |
+                 +-----|      F_JOURNALVALUE           | <--- | FC_JOURNALVALUE_CODE |
                        |                               |      |                      |
                        +-------------------------------+      +----------------------+
                                       ^
@@ -158,10 +223,46 @@ Hierrarki af journalforme
                        |      F_JOURNALVALUE_TEXT      |
                        |                               |
                        +-------------------------------+
+#+END_EXAMPLE
 
 
 *** FC_JOURNALVALUE
-Indeholder journalrecords med 1-til-mange reference til JOURNALNOTE
+Indeholder journalrecords med 1-til-mange reference til JOURNALNOTE.
+
+Som det ses i referencerne nedenfor, er der mulighed for at en journalvalue-række har op til 9 tilknyttede parentrækker med tilsvarende keyword
+
+**** Referencer
+- Concept_ID (D_CONCEPT)
+- FixedValue_ID (D_FIXEDVALUE)
+- JournalForm_ID
+- JournalNote_ID
+- JournalNoteForm_ID
+- Keyword_ID (D_KEYWORD)
+- Parent_ID
+- Parent1_Keyword_ID (D_KEYWORD)
+- Parent2_JournalValue_ID
+- Parent2_Keyword_ID (D_KEYWORD)
+- Parent3_JournalValue_ID
+- Parent3_Keyword_ID (D_KEYWORD)
+- Parent4_JournalValue_ID
+- Parent4_Keyword_ID (D_KEYWORD)
+- Parent5_JournalValue_ID
+- Parent5_Keyword_ID (D_KEYWORD)
+- Parent6_JournalValue_ID
+- Parent6_Keyword_ID (D_KEYWORD)
+- Parent7_JournalValue_ID
+- Parent7_Keyword_ID (D_KEYWORD)
+- Parent8_JournalValue_ID
+- Parent8_Keyword_ID (D_KEYWORD)
+- Parent9_JournalValue_ID
+- Parent9_Keyword_ID (D_KEYWORD)
+- PDF (DV_TERM)
+- Status (D_JOURNAL_STATUS)
+- Term_Key (DV_TERM)
+- Type (D_TYPE)
+- ValueType (D_JOURNAL_VALUETYPE)
+- VitalParameter_ID (F_VITAL_PARAMETER)
+
 
 *** FC_JOURNALVALUE_CODE
 
@@ -169,6 +270,7 @@ F.x.
 Klassifikation af sygdomme:DE660H	DE660H	Ekstrem fedme, BMI 55+
 
 mange til mange opløsning af Concept (ConceptServiceTerm / terminologier) og Journalværdier
+
 
 *** FC_JOURNALVALUE_CODE_STAFF
 
@@ -214,8 +316,35 @@ Kriteriet for indsættelse er at value-feltet i DSD ændres.
                        +-------------------------------+
 
 
-* User
+** Cave
 
+#+BEGIN_EXAMPLE
+                       +-------------------------------+
+                       |                               |
+                       |      F_WARNING                |
+                       |                               |
+                       +-------------------------------+
+                                      ^
+                                      |
+                       +-------------------------------+
+                       |                               |
+                       |      FC_WARNING_ATTRIBUTE     |
+                       |                               |
+                       +-------------------------------+
+#+END_EXAMPLE
+
+*** F_WARNING
+F_WARNING tabellen indeholder advarsler cave og særlig opmærksomhed bl.a. opretter, signer, patidenti9d og information om advarlsen og evt. aflysning.
+
+Der er en type-kolonne der præciserer indholdet af warningrækken.
+
+*** FC_WARNING_ATTRIBUTE
+F_WARNING og FC_WARNING_ATTRIBUTE har en 1 til mange reference. FC_WARNING_ATTRIBUTE indeholder oplysninger om evt. ATC værdier knyttet til den enkelte række i F_WARNING
+
+
+
+
+* User
 
 #+BEGIN_EXAMPLE
 
@@ -238,7 +367,7 @@ Kriteriet for indsættelse er at value-feltet i DSD ændres.
 ** D_STAFF
 
 Stafftabellen indeholder oplysninger om medarbejderens rolle og underrolle (profession og subprofession). Brugerdata hentes fra spider3.UserServiceUser og rollerne fra spider3.ResourceServiceResource. Derudover er der en 1-til-1 relation til USER tabellen.
-ca--tabellen beriges med historikkolonnerne, hvorefter tabellen kan indlæses
+CA--tabellen beriges med historikkolonnerne, hvorefter tabellen kan indlæses
 
 ** DC_STAFF_IDENTIFIER
 
@@ -248,18 +377,18 @@ Identifieroplysningerne hentes fra spider3.ResourceServiceExternal, der joines m
 ** D_USER
 
 Usertabellen indeholder oplysninger om brugerens oprettelse og status. Data hentes udelukkende fra spider3.UserServiceUser. Derudover er der en 1-til-1 relation til STAFF tabellen.
-ca--tabellen beriges med historikkolonnerne, hvorefter tabellen kan indlæses
+CA--tabellen beriges med historikkolonnerne, hvorefter tabellen kan indlæses
 
 
 ** D_USER_ROLE
 
-Brugerrollerne hentes fra spider3.UserServiceRole. I denne tabel er der ikke noget latest-begreb, og dermed ikke historikspor. XYZ tjeck antal i UserServiceRole.
+Brugerrollerne hentes fra spider3.UserServiceRole. I denne tabel er der ikke noget latest-begreb, og dermed ikke historikspor. Tabellen indeholder pt 53 rækker.
 
 
 ** D_GROUP
 
 Patientgrupperne hentes udelukkende fra spider3.SubjectOfCareServiceGroup.
-ca--tabellen beriges med historikkolonnerne, hvorefter tabellen kan indlæses
+CA--tabellen beriges med historikkolonnerne, hvorefter tabellen kan indlæses
 
 
 

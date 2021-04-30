@@ -4,7 +4,7 @@
 * How to use
 The =.emacs= file in home directory should only contain
 #+BEGIN_SRC emacs-lisp :tangle no
-(load-file "~/emacs-config/bootstrap.el")
+(load-file "c:/users/hessellundm/emacs-config/bootstrap.el")
 #+END_SRC
 where the path to bootstrap.el is adjusted to wherever you cloned this repo.
 This will also automatically pull the latest version of the config on startup, unless you forbid it with
@@ -15,7 +15,7 @@ This will also automatically pull the latest version of the config on startup, u
 * Add Package Repositories
 #+BEGIN_SRC emacs-lisp
 (require 'package)
-(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+(add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/") t)
 (add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/") t)
 (package-initialize)
 #+END_SRC
@@ -28,14 +28,6 @@ Inspired by [[https://ogbe.net/emacsconfig.html][ogbe.net]] and [[https://glyph.
   (setq gnutls-verify-error t)
 #+END_SRC
 ** TODO Do more with local certs and check bad ssl
-* Version Control
-For now it's just git, but can add more systems as necessary.
-** Enable magit
-Best git client
-#+BEGIN_SRC emacs-lisp
-(use-package magit
-  :bind ("C-x g" . magit-status))
-#+END_SRC
 * IDO Mode
 #+BEGIN_SRC emacs-lisp
 
@@ -1083,9 +1075,17 @@ Thanks to http://www.howardism.org/Technical/Emacs/eshell-present.html
   :config
   (bind-keys :map dired-mode-map
              ("i" . dired-subtree-insert)
-             (";" . dired-subtree-remove)))
+             (";" . dired-subtree-remove)
+             ("<tab>" dired-subtree-toogle dired-mode-map)))
 #+END_SRC
 
+** dired narrow
+#+BEGIN_SRC emacs-lisp
+(use-package dired-narrow
+  :ensure t
+  :config
+  (bind-key "C-c C-n" #'dired-narrow))
+#+END_SRC
 * YAML
 ** Enable =yaml-mode=
 #+BEGIN_SRC emacs-lisp
@@ -1147,7 +1147,6 @@ Just need to place it in the extra folder.
 (use-package adoc-mode
   :mode "\\.adoc\\'")
 #+END_SRC
-
 
 * Recent files
 #+BEGIN_SRC emacs-lisp
@@ -1212,7 +1211,17 @@ Trying the =keyfreq= package to monitor my command usage
     (goto-char (point-min))
     (while (search-forward "\n" nil t) (replace-match " " nil t))))
 
-(global-set-key [f8] 'remove-newlines-in-region)
+;;(global-set-key [f8] 'remove-newlines-in-region)
+
+(defun remove-newlines-in-region-no-blank ()
+  "Removes all newlines in the region."
+  (interactive)
+  (save-restriction
+    (narrow-to-region (point) (mark))
+    (goto-char (point-min))
+    (while (search-forward "\n" nil t) (replace-match "" nil t))))
+
+(global-set-key [f8] 'remove-newlines-in-region-no-blank)
 
 ;; git-bash
 (defun git-bash () (interactive)

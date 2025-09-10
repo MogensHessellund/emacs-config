@@ -1,0 +1,22 @@
+name: Use GitHub App
+on:
+  workflow_dispatch:
+  
+  push:
+    paths:
+    - .github/workflows/use-git-apps.yml
+
+jobs:
+  checkout-other-repo:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Get Token
+      id: get_workflow_token
+      uses: peter-murray/workflow-application-token-action@v2
+      with:
+        application_id: ${{ vars.GH_ACTION_ID }}
+        application_private_key: ${{ secrets.GH_APPLICATION_KEY }}
+    - run: | 
+        git clone "https://x:${{ steps.get_workflow_token.outputs.token }}@github.com/rob-demo/example-demo.git"
+     
+  

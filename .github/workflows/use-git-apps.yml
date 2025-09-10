@@ -17,6 +17,6 @@ jobs:
         application_id: ${{ vars.GH_ACTION_ID }}
         application_private_key: ${{ secrets.GH_APPLICATION_KEY }}
     - run: | 
-        git clone "https://x:${{ steps.get_workflow_token.outputs.token }}@github.com/rob-demo/example-demo.git"
+        git clone "https://x:${{ steps.get_workflow_token.outputs.token }}@github.com/rob-demo/examples.git"
      
   
